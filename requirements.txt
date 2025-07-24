@@ -1,0 +1,7 @@
+streamlit
+faiss-cpu
+sentence-transformers
+PyPDF2
+language-tool-python
+openai
+pyspellchecker
