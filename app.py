@@ -47,19 +47,26 @@ def detect_compagnie(question):
 
 def ask_groq(prompt, max_tokens=300):
     try:
-        # 💬 Si salutation simple, répondre brièvement
-        salutations = ["bonjour", "salut", "bonsoir", "coucou"]
-        if any(s in prompt.lower() for s in salutations):
-            return "Bonjour !"
-
         response = client.chat.completions.create(
             model="llama3-8b-8192",
             messages=[
-                {"role": "system", "content": "Tu es un assistant spécialisé pour une agence de voyage. Réponds de manière claire et chaleureuse."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": (
+                        "Tu es un assistant de recherche documentaire pour une agence de voyage. "
+                        "Tu réponds uniquement avec les informations disponibles dans les documents fournis. "
+                        "N'invente pas de contexte, ne propose pas de services, et ne demande jamais d'informations personnelles. "
+                        "Si la question est une salutation comme 'bonjour', réponds simplement comme 'Bonjour et bienvenue ! Comment puis-je vous aider ?', sans rien ajouter. "
+                        "Si aucune information n'est disponible, indique-le poliment."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
             ],
             max_tokens=max_tokens,
-            temperature=0.3,
+            temperature=0.2,
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
