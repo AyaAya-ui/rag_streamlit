@@ -4,25 +4,52 @@ import faiss
 import unicodedata
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import language_tool_python
 from spellchecker import SpellChecker
 from openai import OpenAI
+import requests
 
 # === CONFIGURATION GROQ ===
 client = OpenAI(
-    api_key=st.secrets["GROQ_API_KEY"],  # 👈 clé stockée de manière sécurisée dans Streamlit Cloud
+    api_key=st.secrets["GROQ_API_KEY"],  # 👈 Clé stockée dans les secrets de Streamlit Cloud
     base_url="https://api.groq.com/openai/v1"
 )
 
-# === CORRECTEURS ===
-tool = language_tool_python.LanguageTool('fr')
+# === FONCTION DE CORRECTION VIA API ===
+def correct_text_with_api(text):
+    url = "https://api.languagetoolplus.com/v2/check"
+    data = {
+        'text': text,
+        'language': 'fr',
+    }
+    response = requests.post(url, data=data)
+    matches = response.json().get("matches", [])
+    
+    corrected_text = text
+    offset_correction = 0
+    
+    for match in matches:
+        if "replacements" in match and match["replacements"]:
+            replacement = match["replacements"][0]["value"]
+            offset = match["offset"] + offset_correction
+            length = match["length"]
+            corrected_text = (
+                corrected_text[:offset] +
+                replacement +
+                corrected_text[offset + length:]
+            )
+            offset_correction += len(replacement) - length
+
+    return corrected_text
+
+# === CORRECTION ORTHOGRAPHIQUE SIMPLE ===
 spell = SpellChecker(language='fr')
 
 def corriger_question(question):
     mots = question.split()
     corrigé = " ".join([spell.correction(m) if spell.unknown([m]) else m for m in mots])
-    return tool.correct(corrigé)
+    return correct_text_with_api(corrigé)
 
+# === NORMALISATION ET PRÉPROCESSING ===
 def normalize(text):
     text = text.lower()
     return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode("utf-8")
@@ -37,6 +64,7 @@ with open("chunks.pkl", "rb") as f:
 index = faiss.read_index("faiss_index.bin")
 encoder_model = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1')
 
+# === DÉTECTION COMPAGNIE ===
 def detect_compagnie(question):
     norm_q = normalize(question)
     tags_norm = [normalize(tag) for _, tag in chunk_id_to_text_and_tag.values()]
@@ -45,6 +73,7 @@ def detect_compagnie(question):
             return comp
     return None
 
+# === REQUÊTE GROQ ===
 def ask_groq(prompt, max_tokens=300):
     try:
         response = client.chat.completions.create(
@@ -72,6 +101,7 @@ def ask_groq(prompt, max_tokens=300):
     except Exception as e:
         return f"[ERREUR API] {str(e)}"
 
+# === CHAÎNE RAG ===
 def rag_answer_llama(question, top_k=5, max_prompt_tokens=800):
     question = corriger_question(question)
     compagnie = detect_compagnie(question)
