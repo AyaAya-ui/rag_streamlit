@@ -138,7 +138,7 @@ def rag_answer_llama(question, top_k=5, max_prompt_tokens=800):
 
 # === INTERFACE STREAMLIT ===
 st.set_page_config(page_title="Assistant ✈️", page_icon="🧳")
-st.title("🤖 Assistant RAG - Agence de Voyage")
+st.title("🤖 Assistant - Agence de Voyage")
 
 question = st.text_input("Pose ta question ici 👇")
 if question:
