@@ -77,7 +77,7 @@ def detect_compagnie(question):
 def ask_groq(prompt, max_tokens=300):
     try:
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             messages=[
                 {
                     "role": "system",
