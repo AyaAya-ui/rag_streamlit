@@ -10,7 +10,7 @@ import requests
 
 # === CONFIGURATION GROQ ===
 client = OpenAI(
-    api_key=st.secrets["GROQ_API_KEY"],  # 👈 Clé stockée dans les secrets de Streamlit Cloud
+    api_key=st.secrets["GROQ_API_KEY"],  # Clé stockée dans les secrets de Streamlit Cloud
     base_url="https://api.groq.com/openai/v1"
 )
 
